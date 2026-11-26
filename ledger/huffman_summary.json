@@ -1,0 +1,26 @@
+{
+  "isolated": {
+    "n": 489,
+    "round_trip_failures": 0,
+    "median_code_length_raw": 14923.0,
+    "median_code_length_block4": 578.0,
+    "median_code_length_block8": 151.0,
+    "median_dX_raw_to_block4": -14360.0,
+    "median_dX_block4_to_block8": -425.0,
+    "median_bpp_raw": 3.643310546875,
+    "median_bpp_block4": 0.14111328125,
+    "median_bpp_block8": 0.036865234375
+  },
+  "contextual": {
+    "n": 155,
+    "round_trip_failures": 0,
+    "median_code_length_raw": 3821.0,
+    "median_code_length_block4": 135.0,
+    "median_code_length_block8": 29.0,
+    "median_dX_raw_to_block4": -3696.0,
+    "median_dX_block4_to_block8": -107.0,
+    "median_bpp_raw": 3.7314453125,
+    "median_bpp_block4": 0.1318359375,
+    "median_bpp_block8": 0.0283203125
+  }
+}
