@@ -146,6 +146,8 @@ Data clip to [−3, 3]	Rejected — changes what model represents	Not run
 v_k clamp to ±3 / ±5	Rejected — changes gradient's target	Not run
 Softplus noise schedule	Different instrument, not a stabilization	Not run (new instrument)
 
+**Run 1 was overwritten by a label collision during Run 2. The terminal output (loss −3.09T at epoch 150) is the preserved record. Run 1 was not re-run, as doing so would make it a contemporary experiment rather than the historical record
+
 Run 2 outcome. Under the path-changing stabilizations (learning rate 1e-3 → 1e-4 → 1e-5, init 0.01 → 0.001, Adam, no weight decay), the loss was stable through epoch 40 (positive, decreasing) and crossed zero at epoch 40–50, diverging to −323M by epoch 150. The reconstruction dump at epoch 150 shows three different input characters reconstructed as identical near-black images with a single bright artifact in the upper-left quadrant. The model collapsed to the visible bias: it stopped reading the input entirely and output a constant image. This is not a blurry reconstruction (which would indicate learning) and not static (which would indicate noise); it is the model finding the trivial solution to the free-energy objective. The path-changing stabilizations did not prevent the collapse.  The classification column shows that every change is either path-changing or a different instrument, and every retention-lossy change was rejected. . The divergence is a property of the objective and the data, not of a tuning parameter.
 
 
