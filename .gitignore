@@ -3,3 +3,7 @@ __pycache__/
 *$py.class
 .ipynb_checkpoints/
 .DS_Store
+HWDB1.1trn_gnt/
+HWDB2.1Train/
+HWDB2.1Train-lines/
+*pdf

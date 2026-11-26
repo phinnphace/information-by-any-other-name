@@ -1,0 +1,3 @@
+conda activate capstone
+cd ~/Desktop/capstone-characters
+python -m pytest -q

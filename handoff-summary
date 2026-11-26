@@ -1,0 +1,183 @@
+Handoff Summary: Formula-CNN Capstone — Protocol Complete, Code Phase Next
+Where things stand
+You have the final draft of the deliverable protocol and will upload it in the new chat. The protocol work is done; what remains is the code portion. This summary captures the technical context the new chat needs, not the protocol text (which you'll provide).
+
+Project identity
+Capstone / institutional EDA submission, not a journal article. Formal register, institutional audience.
+
+Builds on your own prior work — Study 1 and Study 2 ("Instrument Validation"). Self-citation (Markson, 2026) is legitimate and expected.
+
+Phase Two of a multi-phase project. The original hypothesis (context-dependent visual identity → more relational, compositional, less brittle feature extractor) is not being tested in this phase. This phase builds the validated instrument required to test it.
+
+The framework (settled, do not relitigate)
+Core claim: Perturbation is a property of the transformation, not the variable. Transformation is perturbation. The CNN's error is in the summarization, not the data.
+
+ΔX(VAR) = the change in an analytic variable induced solely by transformation and allocation choices, holding the data source constant. VAR₀ = baseline at starting point A; VAR₁ = post-transformation value.
+
+Agnostic to the analytic variable and to the baseline. The baseline need not be a direct observation — in this study it is not (it is the cropped, resized, quantized image). The framework measures change from wherever the study starts; it does not certify the start is unmediated.
+
+Zero delta means the variable survived unchanged; it does not mean no perturbation occurred, and it does not mean the proxy is faithful. The allocation decision remains.
+
+Not causal, not adjudicative. ΔX(VAR) records perturbation with magnitude and direction; it does not say which representation is correct, and does not treat zero delta as desirable.
+
+The chain formula (settled as Form B):
+
+E_total ≈ Σᵢ π(Tᵢ) · A(kᵢ) · Πⱼ>ᵢ Tⱼ
+
+π(Tᵢ) = the true perturbation transformation *i* introduces. Property of the transformation, not the variable. This is what A(kᵢ) amplifies.
+
+ΔX(VAR)ᵢ = the empirical measurement of π(Tᵢ) where measurement is possible. Not in the formula directly — it stands in for π(Tᵢ).
+
+A(kᵢ) = amplification factor from observer state. kᵢ = known → A ≤ 1 (mitigation possible); kᵢ = unknown → A = ∞ (unbounded).
+
+Πⱼ>ᵢ Tⱼ = cumulative downstream effect.
+
+Critical: unknown links (where ΔX(VAR)ᵢ cannot be measured) are the ones where A = ∞. The ledger records them; it does not omit them. Unmeasured links are the most consequential, not the least.
+
+Pickle clause: Knowing ΔX(VAR)ᵢ does not make π(Tᵢ) = 0; it makes A(kᵢ) finite. The perturbation remains; the amplification is bounded.
+
+The shell game: The conflation of proxy with direct observation, made in ignorance that the proxy is a proxy, is what amplifies the perturbation. Biomedical research runs on proxies (organoids, organs-on-chips) and works because researchers know they are proxies. ML has not had this reckoning. Framing: first two noble truths — suffering exists (perturbation), suffering has an origin (ignorance of the allocation). The formula is diagnostic, not predictive; naming the terms is the intervention. "The analysis is different when you know. This study is an attempt to know."
+
+The instrument (settled)
+Restricted Boltzmann Machine — Gaussian-visible, chosen because it is generative: it reconstructs the input from its hidden representation. Reconstruction is the measurement.
+
+No probes. A linear probe is a second model trained on the first model's output; it perturbs the thing it measures. Reconstruction is a forward pass through the model's own weights. This is a design commitment, not convenience.
+
+Reconstruction ≠ distance. The residual (v_input − v_recon) measures the model's fidelity to its input — "does the character that went in look like the character coming out." It does not measure the distance from direct observation to proxy; that is named in the transformation ledger, not measured.
+
+Lineage: Huffman coding (one object encodes/decodes; decode returns exact original) → RBM (decode returns a distribution; the difference is what we study). Han et al. (2015) merged CNN + Huffman for speed/energy; this is for information retention.
+
+He et al. ResNet citation is used to argue that F(x) + x assumes operations are input-agnostic; Study 1 / Study 2 sign flips are evidence to the contrary.
+
+Data
+Source: CASIA-HWDB, Institute of Automation, Chinese Academy of Sciences (Liu et al., 2011).
+
+ISO condition: HWDB1.1 training set, 240 GNT files (one per writer), characters 打 + distractors 扔, 扛, 扫, 托, 扣. Study 1 used 489 (239 打, 50 each distractor).
+
+CTX condition: HWDB2.1 training set, DGRL page files. Two-character crops: 打 + neighbour, and two-character windows from lines without 打. Study 1 used 286 (151 打-in-context, 135 without).
+
+Contextual copy: Hugging Face OrkaZeta/HWDB2, HWDB2.1Train.zip (554 MB) — unofficial re-upload, integrity via decoder checks. HWDB2.0Train.zip downloaded for parser pilot, not used in any condition.
+
+Decoding: dgrl_extract.py writes one PNG per line, no resize/colour change, stops on layout mismatch. HWDB2.1: 1,200/1,200 pages, 13,768 lines, 344,048 characters, 0 undecodable labels.
+
+Writer matching: same four-digit writer number in GNT and DGRL filenames.
+
+Not used: Teklia/CASIA-HWDB2-line (Study 1's source — resized to 128px high, stored in colour); UndefinedCpp/casia-char-1 (no writer field).
+
+Contextual pool asymmetry is by design — real-world data is unbalanced; the pool is drawn from lines containing 打 vs. not, and this is not a limitation to apologize for. The protocol should describe the asymmetry (line length, position of 打, writer distribution, neighbours) so differences can be read against the pool.
+
+Design (settled)
+Crossed, matched on seed. One RBM per condition, all characters pooled (model is label-free; labels attached after for description only). One seed → same initial weights for every condition and unit type.
+
+Factor	Levels
+Condition	ISO, CTX
+Hidden unit	GB, GR, GR0 (GL optional)
+Hidden units per model	64, 128, 256
+Seed	random.org, ledger, batches discovered (see below)
+Fold	Writer-grouped, 1–5
+Seed plan (settled): Seeds drawn from random.org in advance in TRG batches, recorded in a seed ledger holding a few hundred. Batches continue until the retention picture stabilizes (not a compute budget — information retention is the metric). Number consumed is discovered, not fixed. Report count drawn and batches consumed. A.3's "10" is a floor, not the design total.
+
+Three stages: Stage 0 (get RBM to train), Stage 1 (pilot: both conditions × GB/GR × 128 units × 3 seeds × fold 1, crossed with polarity/scaling/resolution), Stage 2 (full run).
+
+Folds: Writer-grouped. Sensitivity run keeps neighbouring characters within one fold (tests recall from shared context). Leakage audit before Stage 2.
+
+The transformation ledger (B.4)
+Ten steps from paper to model input. Column relabeled "ΔX(VAR) status" (not "Distance"), with values: Unknown / Known, unmeasured / Lossless / Measured: [how]. This matches the framework quantity.
+
+Key rows: step 1 (scan — unknown), step 2 (character segmentation — known, unmeasured), step 3 (line segmentation — unknown), step 4 (decode — lossless), step 5 (100×100 crop — known, unmeasured), step 6 (resize — measured), step 7 (÷255 — lossless), step 8 (downsample to 32×32 — measured), step 9 (polarity — measured in pilot), step 10 (median/MAD scaling — measured in pilot).
+
+The code (starting point — post-hair-pulling.py)
+post-hair-pulling.py — Gaussian-Bernoulli RBM, PyTorch, no RBM library. Header cites Nair & Hinton (2010) and Gaussian-Bernoulli stability lit (Liao et al., 2022).
+
+Reconciliation status (1b table) — five rows, all resolved:
+
+Item	Starting code	Protocol	Resolution
+Hidden-unit noise	Fixed SD 0.01	max(0, x + N(0, σ(x)))	Change sample_hidden to noise = torch.randn_like(pre) * F.softplus(pre) * NOISE_SCALE
+Visible scaling	Pixels ÷255, sigma=1	Scaled to unit spread (ledger step 10)	Keep sigma=1; scale pixels to unit variance first — median removed, ÷ global MAD
+Negative-phase visible	Sampled with Gaussian noise	Noise-free for measurement	Training samples with visible σ (Hinton 2010); reconstructions read noise-free. Training ≠ measurement.
+Free energy	Binary-unit form in docstring	Rectified-unit form for GR/GR0	Code already uses softplus throughout — correct for both. Docstring concern resolved.
+Error summaries	MSE	Median absolute error, ink & background separately	Change code; background dominates every image
+Still needs fixing in code (from prior review):
+
+Permutation check pass condition — currently says "match within floating-point tolerance." Cannot pass on any correct CD-1 implementation (stochastic, batch order changes gradient). Must become distributional equivalence within pre-registered tolerance: weight-norm distribution, activity distribution, held-out reconstruction error. Do not remove the check — it is the evidence the RBM has no spatial prior, which is the whole reason it is the right instrument.
+
+B.5 one sentence: "The starting implementation is a demonstration of the architecture, not a working instrument, and Stage 0 is where the visible scaling and noise schedule are corrected" — extend to include error summaries and negative-phase handling.
+
+Code, not protocol: the torch.randn_like snippet belongs in the code, not the 1b table.
+
+Gradient clipping (norm 5) retained from starting implementation per Liao et al. (2022); absent from source papers; effect logged every run.
+
+Key technical constraints for the code phase
+No probes. Every measurement is reconstruction or a forward pass through the model's own weights. No fitted readout on hidden code. This is non-negotiable — it is the whole methodological point.
+
+Reconstructions labeled by type: noise-off (one pass back through weights), median of draws (primary view), sampled (one draw). Median of draws is the primary view.
+
+Preprocessing (2b): primary 32×32 (1,024 visible), 48×48 pilot arm if fine strokes lost. Ink dark and ink bright both in pilot. Primary scaling: per-pixel median removed, ÷ global MAD; comparison: mean/global SD (Hinton 2010). Scaling fitted on training folds only. No augmentation.
+
+Training settings (2d): CD-1; lr 1e-3; momentum 0.5 (5 epochs) then 0.9; L2 1e-4 weights only; init N(0, 0.01); biases 0; mini-batch 10; epochs up to 300, stop when held-out free-energy gap widens.
+
+Models (2c): GB (stochastic binary, biases yes), GR (noisy rectified max(0, x + N(0, σ(x))), biases yes), GR0 (noisy rectified, no hidden biases — the condition under which relative intensities are preserved per Nair & Hinton), GL optional (leaky, no published training recipe).
+
+Outputs (2g): O1 filter atlas (full + top-36 by norm + random 36), O2 activity profile, O3 residual maps (signed, per-image; median absolute per character), O4 hidden-code geometry (within-model only — separately trained RBMs have unrelated units), O5 cross-source reconstruction, O6 gate decomposition, O7 stability/fit, O8 rebuilt images.
+
+Free energy and reconstruction error mark when a model starts copying training images; they are not used to rank models. No likelihood measure.
+
+Analysis plan (D): descriptive only; medians, IQR, full range, no means (except where distribution demonstrably symmetric); stratified bootstrap over seeds within folds (Agarwal et al. 2021, median for IQR mean); no unbiased K-fold variance estimator (Bengio & Grandvalet 2004), so fold intervals descriptive; every run reported, no best run; every summary number beside its picture.
+
+What the new chat needs from you
+Upload the final protocol draft — it is the authoritative reference; this summary is orientation, not replacement.
+
+Upload post-hair-pulling.py (or confirm it is unchanged) — the code phase starts from the reconciliation table above.
+
+State the code goal for that chat — likely: implement the five reconciliation fixes, add reconstruction-by-type labeling, add ink/background error summaries, restructure diagnostics to match O1–O8, and build Stage 0 logging.
+
+Open items carried forward
+Stage 0 has not been run. The reconciled implementation has not trained on CASIA data. This is the next substantive work.
+
+100×100 crop exclusion count — record before cropping, report in results, not a data-cleaning step.
+
+Contextual pool description — line length, position of 打, writer distribution, neighbours; cite Study 1 if it documents the asymmetry.
+
+Timeline — protocol says "completed exploratory analysis first week of December 2026"; Stage 0 "may take many attempts." Check whether the milestone is the write-up or the completed analysis.
+
+Ledger E_total formula — B.4 uses d_i · A(k_i, n_i); Section 2 uses π(Tᵢ) · A(kᵢ) · Πⱼ>ᵢ Tⱼ. Reconcile as simplification note or align.
+
+Framing to preserve
+The protocol is an EDA, not a confirmatory study. "There is no winner." The framework is agnostic, diagnostic, and descriptive. The instrument is the contribution. The first two noble truths: the condition is named, its origin is named, the cure is not promised in this phase. "The analysis is different when you know. This study is an attempt to know."
+
+
+The 1b reconciliation table was scoped to training-hyperparameter mismatches — noise, scaling, free energy, error summaries. It deliberately moved resolution, hidden units, batch, and polarity to 2e as "pilot decisions." What it did not do was audit the data layer (which character, which source, which parser) or the visible-layer input (what resolution the model actually receives). Those are not training settings; they are the object of study. The table's scope was too narrow and I should have caught that.
+
+The script's TARGET = '的' and load_contextual_data() using Teklia are Study 2 carryovers. The protocol replaced both — 的 → 打, Teklia → HWDB2.1 via dgrl_extract.py — and the replacement was recorded in the protocol text (A.3, B.2, B.3) but never propagated into the script. The reconciliation table should have had rows for both and did not.
+
+The 100×100 → 32×32 downsample is in the protocol at ledger step 8 and 2b ("Primary 32 × 32 (1,024 visible units)"), but the script's IMAGE_DIM = TARGET_SIZE[0] * TARGET_SIZE[1] = 10,000 visible units is 100×100. The script never implements step 8. That is a code change, not a protocol change, and it belongs in Stage 0.
+
+What to do
+Add two rows to the 1b reconciliation table — or, more accurately, add a short subsection 1d: Data layer and input resolution, because these are not hyperparameter reconciliations and mixing them into 1b would misrepresent what 1b is for. Drafted:
+
+1d. Data layer and input resolution. The starting implementation predates the data decisions in A.3 and B.2–B.3 and must be rebuilt against them before Stage 0.
+
+Item	Starting implementation	This protocol	Status
+Target character	的 (Study 2)	打 (Study 1); distractors 扔, 扛, 扫, 托, 扣	Code changed; data layer rebuilt
+Isolated source	CASIA HWDB1.1 via load_isolated_data()	Same source; character set and distractor list per A.3	Code changed; character list updated
+Contextual source	Teklia/CASIA-HWDB2-line (resized to 128px, colour)	HWDB2.1 DGRL files via dgrl_extract.py; 100×100 crops per B.3	Code changed; load_contextual_data() rewritten
+Writer grouping	None	Writer-grouped folds per 2f; writer number parsed from GNT and DGRL filenames	Code added
+Fold structure	None	5 writer-grouped folds; fold seed from ledger	Code added
+Input resolution	100×100 (10,000 visible)	32×32 primary (1,024 visible); 48×48 pilot arm	Code changed; ledger step 8 implemented and logged
+Add one sentence to B.5 naming the scope of the rebuild, because B.5 currently says the starting implementation is "a demonstration of the architecture, not a working instrument" and only mentions scaling and noise. It should say:
+
+The starting implementation demonstrates the architecture on a different character and a different contextual source; the data layer (1d) is rebuilt against A.3 and B.2–B.3 before Stage 0, and the visible-layer resolution is set by ledger step 8.
+
+Add one sentence to 2b making the downsample explicit as a code step, because 2b currently describes it as a preprocessing choice and the code does not implement it:
+
+The 100×100 crops and resized isolated images are downsampled to 32×32 (48×48 in the pilot arm) before training; the down-then-up residual at both resolutions is computed and logged per image before any training begins (ledger step 8).
+
+That last clause matters because the ledger already says step 8 is "measured in this study — down-then-up residual per image, before any training." The protocol promises the measurement; the code has to perform it. Right now nothing in the script computes it.
+
+The larger point
+The new chat's flags are symptoms of the same gap: the protocol was revised in text and the script was not revised at all beyond the hyperparameter reconciliation we discussed. The script is still essentially the Study 2 script. Stage 0 has not begun, so no CASIA data has been through the reconciled implementation — which means the data-layer rebuild (1d) and the downsample (step 8) are both pre-Stage 0 work, not Stage 0 adjustments. They need to happen first, before any training run, because training on 的 or on Teklia crops would produce results about the wrong study.
+
+One thing worth saying plainly in the new chat: the reconciliation table was never meant to be the full code audit. It was scoped to training mismatches because that was the immediate question at the time. The data-layer audit is a separate piece of work, and the new chat is right to flag it. The fix is 1d plus the B.5 and 2b sentences, and then the code rebuild proceeds from those. The protocol does not need to change; it already says what the script should do. The script needs to catch up to the protocol.
+
+
+framework's point: the uniform-division crop is an allocation decision pretending to be a neutral operation, and in calligraphy it fails on the actual data — diagonal lines, variable widths, touching strokes. The manual crop is the direct observation of where the character is; the script is the proxy. You already ran the experiment three times and the models told you the proxy was wrong. That is exactly the "the analysis is different when you know" situation, and it's on the record.

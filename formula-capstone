@@ -1,0 +1,25 @@
+E_total ≈ Σᵢ dᵢ · A(kᵢ, nᵢ)
+
+A first sketch:
+
+E = d(P, O) · A(k)
+
+d(P, O) is the distance between proxy and observation: the crosswalk delta, the pre/post-ReLU probe gap, the split-ratio swing.
+A(k) is the amplifier, set by whether that distance is known.
+
+What makes it more than a metaphor is that A isn’t just bigger when k is unknown. It changes kind:
+
+Known distance can be bounded, corrected, or reported with an interval. A ≤ 1: the residual error is whatever survives the correction.
+Unknown distance can’t be bounded at all. The issue isn’t that the error is large; it’s that the error is unquantifiable. That’s Knight’s (1921) distinction between risk, which is measurable, and uncertainty, which isn’t. The unknown state converts the first into the second.
+
+Then add the chain, because nothing in practice is a single transformation. A crosswalk feeds a model, which feeds a policy. Conv, ReLU, pool, three times over. Every downstream decision inherits each upstream distance, so A grows with the number of decisions resting on an unacknowledged proxy, roughly:
+
+E_total ≈ Σᵢ dᵢ · A(kᵢ, nᵢ)
+
+where nᵢ is how many things are built on transformation i. One unmeasured term makes the whole sum uncomputable, even if every other term is known ignorance at any single link doesn’t add error, it removes the ability to state the total.
+
+There’s also a bridge you probably already have from Mayo. Total Survey Error (Groves et al.) has two arms, measurement and representation, and tracks error accumulating along each from construct to final estimate. It’s the closest existing formal framework to what you’re describing, and it’s a methods tradition ML has never borrowed from. One terminology clash to watch: TSE’s “representation” means who’s in the sample, while yours means the stand-in for the observation. You’d want to define your terms against theirs.
+
+
+得上打胜仗
+得上打胜仗

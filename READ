@@ -1,0 +1,19 @@
+# Capstone: RBM Exploratory Study of Chinese Handwriting
+
+## Overview
+This repository contains the Iteration 1 and Iteration 2 code and data ledgers for the capstone EDA.
+See `CHRONOLOGY.md` for the timeline of events.
+
+## Directory Structure
+* `/scripts/` — The core pipeline scripts used to generate results.
+* `/archive/` — One-off utility scripts used for data correction (manual cropping, path fixes). Kept for transparency, not part of the main pipeline.
+* `/ledger/` — Seed ledgers and Huffman measurement outputs.
+* `/models/` — Saved model states and reconstruction dumps (Stage 0).
+* `/figures/` — Generated plots (Huffman distributions, Decay pilots, Recon dumps).
+
+## Reproduction
+To reproduce the Huffman calibration (Iteration 2):
+`python scripts/huffman_measure.py`
+
+To reproduce the Stage 0 divergence (Iteration 1):
+`python scripts/stage_0_train.py` (Note: Run 1 files were overwritten; the canonical surviving run is Run 2).

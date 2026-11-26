@@ -1,0 +1,9 @@
+{
+  "run_id": "internal_validation_full",
+  "seed": 27913148,
+  "total_images": 644,
+  "elapsed_seconds": 123.03,
+  "python": "3.13.15 | packaged by Anaconda, Inc. | (main, Aug 14 2026, 17:26:23) [GCC 14.3.0]",
+  "numpy": "2.5.5",
+  "device": "cpu"
+}

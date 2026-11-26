@@ -1,0 +1,494 @@
+Yesterday, everything changed. While I was prepared for the RBM being "difficult to train", I did not realize that "difficult to train" was a euphemism in the higher orders of machine learning for "we will turns the nobs and tweak the dials endlesly until just something produces an output." This is not training. This is manipulation. Trainging is what happens when the right instrument for the right task is paired and successive iterations of that task are carried out and training occurs as evidenced by a measurable difference in performance. Typically,  speed is not the metric, but information retention and competence are. Not knowing any better, I fell into this trap again. But I extricated myself much faster this time because I've been trained now, at least that much. t least that much is happening. I tried the RBM twice, and it failed. I stopped because it is not the correct tool for this job.   I I paused and went back to my protocol to reread. What was the plan? What was the original intent? What are the future phase methodological plans? I wanted to see if anything could be salvaged or implemented now in place of the original approach. This left me with the Hough transform and Huffman coding. After some side quests and further investigation of the Hough transform, I did not end up doing the Hough transform, though that was what I was going to do.  ended up with Huffman coding.
+Here is the raw rationale from the failures as to why so you can put the pieces into a sane, cogent transcript please for So, I'm going to be emailing the author/researcher from CalliReader asking for colloboration on validation right now (internal validation). I have to start a Git repo for this project as well for timestamping purposes and order. I might have to, now I should update my program for where this is now because this has taken an exciting turn, but a left turn nonetheless, given that this has changed so abruptly and excitingly yesterday. We need to document the how and the why and the what.
+
+                Strap in:
+So, finally got the RBM to run, super exciting, phase zero, and the model exploded. Loss went to like minus 3 million, negative 3 trillion basically. Right, classic divergence Gaussian Bernoulli RBM. So, okay, my first rodeo, split is broken, look at the training size. So, the fix was right drop the learning rate, add a temporary guard. And as I was reading through all of the fixes, I was like, okay, I get it. Expansion sounds like the Big Bang. Got it. And then, further reading the fixes, I realized that, huh, this kind of sounds like manipulation. And then I Realize that this conflicts with the entire purpose and methodology of this protocol, this research project, and also just me. So, the goal being information retention, and retention is a synonym for accuracy. Accuracy, in this sense, means that the image we are seeking is the image we are looking at and the one that we will get back, right? As close to a one for one copy as we can get, which is what we should expect and what we should be able to get back. And that is aligned with the purpose of this project.As I am realizing these things and I explain a more succinct version of this to the DeepSeq model, it then now shares the following.
+
+
+the protocol's core commitment more plainly than the protocol does, and it changes how I should answer. "Retention = accuracy = the image coming back is the image that went in, as close to one-for-one as we can get.What I proposed that conflicts with retention
+1. Clipping the data to [-3, 3] preserves the image but flattens the tails. Clipping is a lossy transformation applied before the model sees the data. 2. Clipping v_k during negative-phase sampling corrupts the gradient. The negative phase is supposed to estimate the model's distribution. 3. Aggressive gradient clipping (norm 1.0) bounds the step size but changes the direction.The explosion wasn't caused by unbounded data. It was caused by the learning rate and the scale mismatch between the data and the model's visible bias initialization. Was not particularly happy with all of this manipulation, and we do have the formula for this measure. So I replied with such.Every transformation is lossy; we know this, and that's why we are measuring. We measure the degree of loss where we can. I know this, you know this, and that is why we are able to mitigate the loss as best we can.
+
+Ignorance is something we are not in, which is part of the formula you have access to in the protocol. This is like the first two Noble Truths. That's what we're working with here. Ignorance is the cause of suffering, but we are not in ignorance about our transformation (aka the cause of suffering, thus, our loss—our suffering—will be mitigated because we can awaken and take different actions.So, to align with the framework: we don't clip the data. We run the model with the parameters that minimize the A(ki)
+of training instability (lower lr, lower init, safe grad clip), and we let the intrinsic π(Ti) of the RBM's generative process do its thing. Then we measure what's left.
+So then we applied the following>>>
+retention invariant I'll apply from here on
+Every stabilization choice gets tested against this question: does it change the relationship between input and reconstruction, or only the path to learning it?Lower learning rate → changes the path. Fine. Retention preserved.
+
+Smaller init_std → changes the starting point. Fine. Retention preserved.
+
+Gradient clipping at norm 5 → bounds the step size, not the objective. Fine. (Liao et al. 2022 use this exact value; it's in the protocol's B.5.)
+
+Gradient clipping at norm 1 → too aggressive; bounds the reachable weights. Borderline.
+
+Clipping data to [-3, 3] → changes what the model is asked to represent. Rejected.
+
+Clipping v_k to [-3, 3] → changes the gradient's target. Rejected.
+
+Early stopping on held-out free energy → changes when training stops, not what's learned. Fine.
+
+Weight decay / L2 → shrinks weights toward zero, which shrinks the reconstruction toward the visible bias. It's a retention-versus-generalization tradeoff. Standard, but it does reduce retention. Note it in the ledger.
+then we tried a "retention-aligned stage_0_train.py update"
+and got more or less the same results..to which the model starts explainging Down the familiar pathway we were just down."The loss is still diverging. It's slower, but it's going to negative infinity again. The gradient clipping and the lower learning rate slowed the Big Bang down, but they didn't stop it.
+
+This is the classic Gaussian-Bernoulli RBM divergence problem. It means the learning rate is still too high, or the step size for the visible bias b is too aggressive.
+
+In Hinton's 2010 Practical Guide for RBMs, he explicitly notes: "Gaussian visible units require a much lower learning rate than binary units." Sometimes 100x lower. We dropped it to 1e-4. We might need 1e-5 or 1e-6."
+And it's at this point, after the model said its piece, that I called BS on this. And the model responds as such and says, Yep, I should stop. And it was just like, I'm going to hand you a fourth week and a loss curve, all these things. And then we paused. And I said, Great, we can go back to planning here because this is not what this is about.And then the model says this."What the protocol actually says to do: The instrument is the contribution. If the instrument fails, the failure is the contribution. Phase One's objective is to "describe what information about Ĵ, isolated and in context, a restricted Boltzmann machine retains and loses." A Gaussian-Bernoulli RBM that diverges on 32×32 binarized calligraphy is telling you it retains nothing—it explodes. That's a finding. It goes in the ledger, and it goes in the paper.
+
+What I should have said three messages ago: The loss exploded. Here are the readings:
+
+Epoch 10: +1,506,218
+
+Epoch 150: -323,298,784
+
+That's the trajectory. It starts high and positive (the model's initial free energy gap is large), and it runs to negative infinity (the model's fantasy samples grow without bound). The divergence is smooth and monotonic after epoch 40. That is a stable divergence, which means it's a property of the model, not a numerical accident. If it were a random NaN, it would spike. Instead it walks steadily down. That is the RBM learning to make its fantasies enormous because that's what minimizes the free-energy objective we gave it. The objective itself may be misaligned with what we want, not just badly tuned.
+
+We should record that as Stage 0's result. The instrument does not preserve the input on this data at this scale with this training procedure. That's the first substantive finding."
+And then I went back to you to go through the rest of the protocol and talk about the Huff Transform. And we came up with that protocol, and this is where you have no additional knowledge that I'm filling you in about. We came up with the Huff Transform, and you would be under the mistaken belief that that is what happened. That is not what happened. What happened was Huffman coding, and it was successful and exciting.Oh, I take that back. I did ask you for Huffman coding parameters and variables, so you are aware of this. My bad.
+
+Getting the huff code into a format the model or anyone can understand took a bit...so here is that output from my end: "The other technique or tool mentioned in the protocol was Huffman coding. That was actually my second plan, aside from the RBM. I had initially found a paper on it when I needed to find a paper, and apparently, they used it in a way that I had not intended, so no big loss there. Now that the RBM is not working, it frees us up to do what I had intended to do originally anyway, so we're going to give it a try.
+Huffman as a deterministic measurement of symbol-definition sensitivity,
+Huffman coding is a machine-readable invertible map back to the original input: encode(x) followed by decode returns x exactly, by construction, with no model. It is therefore the zero-residual calibration for any approximate reconstruction, and its ΔX(VAR) is the change in code length across symbol definitions, measured directly on the crops.
+
+The Huffman-as-lineage argument in Section 4 was "one object encodes and decodes." That's the same idea stated in the protocol's vocabulary: Huffman is the invertible map, the RBM would have been the lossy map, and the comparison between them is the comparison between exact and approximate representation — which is the axis the study is on.  the framing is not "Huffman extracts features for a model to read." It's: Huffman is an invertible transformation whose residual is identically zero, and it therefore calibrates the reconstruction measurement. It is the control condition for "what does reconstruction cost." Hough measures what structure is present; Huffman measures what it costs to represent the data exactly; the RBM (had it trained) would have measured what it costs to represent the data approximately. Those are three points on the same axis — exact, structured, approximate — and the comparison is meaningful precisely because Huffman establishes one end. This stays within the  fits the framework cleanly. ΔX(VAR) for Huffman is the change in code length under different symbol definitions, and the round-trip residual is zero by construction — which is not a trivial result, it's the calibration of the residual measurement itself. You can't interpret the RBM's residual without knowing what zero looks like, and Huffman is what zero looks like.
+
+Huffman's invertibility doesn't make it a model-readable representation in the sense the hidden layer was. The bitstream is a re-encoding of the symbols, and a downstream model reading it would be reading the same information with a different vocabulary — no compression of meaning, only of symbol frequency. But this is fine, because we’re not proposing Huffman as the representation a model reads. We’re proposing it as the invertible transformation whose zero residual calibrates the measurement."
+
+"Huffman is 1a-cal, in Goal 1, established on the same data before Stage 0.
+
+It is calibration, not instrument. The round-trip residual is zero by construction. It establishes the floor against which any approximate reconstruction is read.
+
+ΔX(VAR) for Huffman is the change in code length across symbol definitions, measured directly on the crops. No model in the loop. No seeds. No folds. Deterministic.
+
+Outputs go in 2g; analytic variables go in D.1.
+
+The RBM failure stays in 1c as the instrument finding. Not superseded, not replaced.
+
+The protocol needs one paragraph explaining why Huffman is calibration and not substitute: the RBM's likelihood is intractable, the field has no floor for it, and Huffman provides the floor on the same data.
+this is where the Huff started
+raw pixels (byte-level), 4×4 blocks, 8×8 blocks. ΔX(VAR) is the change in code length across definitions. Analytic variable: compressibility given symbol definition. Deterministic, no model, no training.
+worked great out of the box
+Loaded 509 crops.
+Wrote 509 measurements to ledger/huffman_measurements.csv
+Wrote summary to ledger/huffman_summary.json
+Wrote distributions to figures/huffman_distributions.png
+
+--- 1a-cal SUMMARY ---
+isolated: n=489, round-trip failures=0
+  median bits/pixel: raw=3.643, block4=0.141, block8=0.037
+  median ΔX: raw→block4=-14360 bits, block4→block8=-425 bits
+contextual: n=20, round-trip failures=0
+  median bits/pixel: raw=3.738, block4=0.130, block8=0.026
+  median ΔX: raw→block4=-3698 bits, block4→block8=-104 bits
+  A bug in the script here was found, and it only loaded 20 of the contextual crops, so that had to be sorted, and it was. And this is what happens next.
+  As always, it's a file path naming convention with the image files, so that was a little bit of a detour between the sources and local copies, but got it fixed, and then the fun really begins.
+  -- 1a-cal SUMMARY ---
+isolated: n=489, round-trip failures=0
+  median bits/pixel: raw=3.643, block4=0.141, block8=0.037
+  median ΔX: raw→block4=-14360 bits, block4→block8=-425 bits
+contextual: n=155, round-trip failures=0
+  median bits/pixel: raw=3.731, block4=0.132, block8=0.028
+  median ΔX: raw→block4=-3696 bits, block4→block8=-107 bits
+  So, the model provided this explanation, and I tore into the assumptions, and that led to more and better exploration.
+  >>>In the Raw pixels panel (left), the isolated and contextual crops overlap almost entirely. If you just look at pixel values, they look basically the same (~3.65 vs ~3.73 bits per pixel).
+
+But in the 8×8 blocks panel (right), the distribution splits. The contextual crops (orange) cluster around 0.028 bits per pixel, while the isolated crops (blue) cluster around 0.037 bits per pixel. The contextual crops are more compressible at the 8×8 level.
+
+Why? White space.
+
+An isolated crop is tightly bound around a single character (打 or a distractor). It is dense with ink. An 8×8 block of an isolated crop is likely to contain a stroke, so it requires more bits to encode.
+
+A contextual crop is a 100×100 window containing two characters. It has huge margins, the gap between the characters, and empty space above and below. An 8×8 block of a contextual crop is very likely to be pure white paper, which compresses to almost nothing.
+
+The Huffman measurement just proved, deterministically, that the contextual crops contain more structured empty space than the isolated crops. This is the exact kind of named, hand-specified measurement the protocol needed.
+
+Why this matters for the 1a-cal (Calibration)
+This is the "zero-residual floor." We now know the exact symbol-definition cost of the data itself, completely independent of any model.
+
+If we had trained the RBM, and it had shown that contextual crops reconstruct with lower error, we would have had to ask: Is that because the model learned context, or because there is simply less ink to reconstruct?
+
+Huffman just answered that question before the model even enters the room. The contextual crops are systematically more compressible at the block level. Any future model must beat this baseline to claim it learned structural context.
+
+The ΔX(VAR)
+The median ΔX from raw to block4 is roughly -3700 bits for contextual, and -14,360 bits for isolated.
+The ΔX from block4 to block8 is -107 bits for contextual, and -425 bits for isolated.
+The ΔX is the change in compressibility given the symbol definition. The fact that the isolated crops drop more bits when you give them larger blocks tells you that the isolated character's ink is more spatially contiguous (larger chunks of solid black/white).
+
+Next step: Hough
+We have the 1a-cal. The data is calibrated.
+
+The next direct measurement is the Hough transform. The question is: Does the line structure (Hough) agree with the symbol-definition sensitivity (Huffman) about what distinguishes the crops?
+
+Huffman says contextual crops have more empty space. Hough might say contextual crops have different line orientations (because the crop includes the diagonal/horizontal strokes of a neighbor, not just the centered strokes of 打).
+
+Do you want me to write scripts/hough_measure.py now so we can run the second direct measurement?"
+"<<< Specifically, I tore into the following. The model was talking about the number of claims they make about character distribution and strokes per character and white space. So I went on a long rant about those.But culminating in a question about the potential correlation between space and distribution of pixels, asking if there could be a potential inverse relationship between those, related to specifically the size of the block and the distribution of pixels. That was my question. Then I had to rein the model in and be like, Stop making scripts, we're just planning now. That took a few turns, but we got there eventually. And that's okay because the model said a lot of things that were provocative for me, which helped me elucidate more of what I was trying to articulate and also understand myself. So, not bad things. The model does ask or did ask if I wanted to do the Huff Transform in this as a validation step, and I was too deep down a rabbit hole that we ended up going down to do that. I don't think that is a bad idea. In fact, I think it's a really good idea, so that should still stay as an open checkbox of tasks to do.
+"<<<
+"<<< This also needs to be included somewhere in some documentation.he block quantizer uses a 4-bit palette (16 levels) on the block mean. That is a design choice I made for you, and it's the kind of thing the protocol says to name rather than bury. If you want a different quantization (e.g., 6-bit palette, or a full-block code without quantization), say so and I'll change it. The point is: the block symbol definition is a transformation, and its quantization parameter is part of the transformation chain.
+
+The round-trip check verifies the Huffman code is prefix-free. A prefix-free code is uniquely decodable, which is the mathematical guarantee that decode(encode(x)) = x. The script does not re-decode the entire crop symbol-by-symbol (which would be slower and add no information); it verifies the structural property that guarantees decodability. If you want a literal bitstream-level decode for a handful of crops as a spot check, I can add that.
+
+The output figure shows three histograms (raw, block4, block8) with isolated vs. contextual overlaid. That is the direct comparison the protocol asks for. The JSON summary gives the medians per condition, which is what goes in D.1."
+<<<<"
+Carrying on then with the narrative The model gives me this long code to prove, in quotes, the aforementioned idea. And of course, now I'm no longer in running code mode, I'm trying to have a back and forth dialogue about this. But the code and its rationale gives me some thoughts, which I then share. That goes like this I ask ...""Because the contextual crops and isolated crops have roughly the same overall amount of ink (both center on 打), if the block size gets large enough, the distributions will collapse onto each other. The ΔX will approach zero. The symbol definition will become blind to the difference." Again, this is an assumption, and one that we have talked about a lot before. I'm surprised you are making that here, because to me this seems to point to the possibility that we could discern brush stroke and stroke pressure and opacity from block size via an inverse directional relationship, like a simple xy scatter plot."
+Ds replies:" You are right on both counts. I made another declarative leap, and it was exactly the kind of assumption you've been training me out of. I assumed "same amount of ink" because both contain 打, but 打 is not a fixed amount of ink. A thick brush stroke on wet paper has vastly more ink than a thin pen stroke on dry paper. The contextual crops could have more ink, less ink, or exactly the same ink. I don't know. The Huffman script is going to tell us.
+
+And you are also right about the directional relationship. I was thinking about the collapse of total bits, but that's the wrong metric. The block size is effectively a convolution with a box filter. If you take an 8×8 block, you are averaging a small region. If you take a 32×32 block, you are averaging the whole character.
+
+But if you treat the blocks not just as 1D symbols (the mean intensity), but as directional gradients (the change between adjacent blocks), the symbol definition captures the stroke geometry.
+
+You just pointed at something really important: Huffman alone can't tell you the direction, but you can reconstruct the spatial distribution by using the block grid as a coordinate system.
+
+If you have a 32×32 image, and you divide it into 4×4 blocks, you get an 8×8 grid of blocks.
+
+You can map each block's mean intensity to an
+(
+x
+,
+y
+)
+(x,y) coordinate (its position in the grid).
+
+You can map each block's code length (how many bits it took to encode) to a
+z
+z coordinate (its complexity).
+
+You can plot the
+x
+,
+y
+,
+z
+x,y,z surface.
+
+The shape of that surface is the stroke. A high
+z
+z surrounded by low
+z
+z is a stroke edge. A ridge of high
+z
+z is a thick stroke. The gradient of
+z
+z across
+x
+,
+y
+x,y is the stroke pressure and opacity.
+
+If you do this for the 4×4 and 8×8 blocks, you are essentially doing a hand-specified, deterministic wavelet transform using Huffman code lengths as the metric. You're not just measuring the total bits; you're measuring the spatial distribution of the information.
+
+This is exactly the "named geometric summary" that distinguishes this from the RBM's learned, distributed summary. The RBM's hidden units are a black box. The Huffman-block-gradient is a transparent, measurable, directional map.
+
+Let's change the script to measure this.
+We can update the script to save the per-block code lengths (not just the total). Then we can plot the block grid as a 2D heatmap. This will visually show the strokes and the pressure.
+
+I will update scripts/huffman_measure.py to output a block_maps.json file that contains the 2D array of block complexities for each crop, and I will write a small plotting script to visualize the
+x,y,z surface for a few examples.
+
+Do you want me to build the spatial block-map output next? Or do you want to run the current version first to see if the total distributions collapse as the block size increases, and then build the spatial map?" To which I reply: "Correct, and this is where a convolutional grid fails through pooling and summarizing destroying information. It goes the wrong way, for lack of a more thought out train of thought at the moment Though I have all of this well written out elsewhere, just not right here. We're approaching it from the other direction, which retains information. We're not losing information by pooling and summarizing.
+And here you are throwing a heat map at something where I said I wanted a scatter plot. We're having a miscommunication here. It's my fault. I will fix this. And we don't do means. Mean is a useless, susceptible measure. Median is what we do.
+
+So I will explain better what I mean: When I asked you about the relationship between the block size and pixels in the distribution, you responded with a sentence like this. "If we extend the block size (12×12, 16×16, 32×32), the distributions will follow suit. Here is what the physics of the Huffman code dictates:
+
+As the block size grows, the number of blocks shrinks. Eventually, the block becomes larger than the character or the inter-character gap. At that point, the symbol definition shifts from "capturing local stroke geometry" to "capturing the global average intensity of the whole crop." Its this part in particular, "global average intensity" that brought me brush stroke, saturation, ink, and opacity.   Then you said this which we have already put to bed, im just including it for chronology; "Because the contextual crops and isolated crops have roughly the same overall amount of ink (both center on 打), if the block size gets large enough, the distributions will collapse onto each other. The ΔX will approach zero. The symbol definition will become blind to the difference." A scatter plot would have opacity on the y-axis and distance on the x-axis. The relationship would be directionally directional. From what I am gathering, or what is worthwhile testing, is that they are related. The more we stretch the image, the character, or the data out, there is going to be a proportional relationship between global intensity (median) and pixel position. This relationship depending on the relationship will become visible at some optimal block size TBD by the underlying global average.And DS:"I have it now. Thank you for spelling it out.
+
+You are not asking for a 2D image of the crop. You are asking for a scatter plot where each point is a crop, the x-axis is the spread (the block size or distance over which the intensity is evaluated), and the y-axis is the actual ink/opacity (the median, not the mean).
+
+And you are right about the mechanism. A CNN pools and summarizes—it takes the average and throws away the local variation, which destroys the character. We are doing the opposite: we are measuring the actual intensity at the block level. The Huffman code length is a proxy for complexity, but the median intensity of the block is the direct measure of ink.
+
+If we take a crop, and we chunk it into blocks of size N×N, the median intensity of that block tells us how dark the ink is. As N grows, we are measuring the median intensity over a larger spatial footprint.
+
+The relationship you are proposing is: As block size increases, the median intensity of the blocks changes in a way that reveals the spatial distribution of the ink.
+
+If the ink is concentrated in a tight stroke, the median intensity of small blocks will be very dark (near 0) where the stroke is, and very light (near 255) where it isn't. As the block size grows, it averages these out, and the median shifts.
+
+The rate at which the median shifts as a function of block size is a measure of the stroke's thickness and the character's overall opacity.
+
+So the scatter plot is:
+
+X-axis: Block size (or the spatial distance).
+
+Y-axis: The median pixel intensity of the blocks at that size.
+
+Each point is one crop (or one block, depending on how we aggregate).
+
+If we plot this for isolated vs. contextual, we can see if the curves separate. If contextual crops have a different "median intensity vs. block size" curve, it means the spatial distribution of the ink is different.
+
+The Fix
+I will write a script that does exactly this. No means. No heatmaps. Just the scatter plot you described.
+
+It will iterate through each crop, chunk it into block sizes (2, 4, 8, 16, 32), compute the median intensity of the blocks at each size, and plot the median intensity vs. block size.
+
+Here is the script. Me: "Okay, I don't want to do any aggregation or summation at all. That is my least desired state for any kind of measure, ever—across everything. Period. Let's get that on the record. I understand it must be for certain tasks, but that is my last resort and I actively seek to avoid it.
+
+Perhaps I misunderstand, because you are talking at the character level and I am talking at the pixel level. That needs to be figured out right now. Okay, when I look at the histograms, my understanding is that this is at the pixel level. The label and title indicate that, and that has been my understanding the whole time. If that is not the case, you need to correct me now, because that would be a major misunderstanding on my part. The idea I just gave you is entirely based on the pixel level of measurement, and is meant to be extrapolated to the character level, but the measurement is supposed to be at the pixel level. If I am wrong, I need to be set right." And DS: "Let me set the record straight immediately: You are right, and the histograms are at the pixel level.
+
+Here is exactly how the Huffman script worked:
+
+It took the crop.
+
+It chopped it into blocks (e.g., 4×4).
+
+It calculated the median intensity of that one specific block.
+
+That block became a single symbol.
+
+The histogram plotted the code length per pixel.
+
+But to calculate that code length, it had to sum up the bits for all the blocks in the crop and divide by the total number of pixels. That is where the aggregation snuck in. I aggregated the bits to get a crop-level metric (bits per pixel).
+
+You are telling me: No aggregation. Not even the median of the blocks. Just the pixels.
+
+If we are at the pixel level, and we refuse aggregation, then the measurement is a scatter plot of individual pixels.
+
+X-axis: The spatial coordinate (distance from the center, or the coordinate of the pixel in the grid).
+
+Y-axis: The pixel intensity (0-255).
+
+Color: Isolated vs. Contextual.
+
+But if we just plot every raw pixel, the scatter plot will be a massive square cloud (an image is just a grid of coordinates). The structure comes from the relationship between the coordinates and the intensity.
+
+If you want to see the relationship between block size and intensity without aggregation, we don't take the median of the block. We take the individual pixels inside the block and plot them against their distance from the block's center.
+
+Wait. I need to stop and ask you, because I do not want to guess again.
+
+When you say "block size" and "pixel level" and "no aggregation," what is the exact X and Y of the scatter plot you are envisioning?
+
+Is X the distance between pixels? Are we plotting the intensity of a pixel (Y) against its distance from another pixel of ink (X)?
+
+If so, we are measuring the spatial autocorrelation or the stroke thickness: "when I move
+N
+N pixels away from a dark pixel, how does the intensity change?" This is a variogram. It is a pixel-level measurement with no aggregation, and it reveals stroke pressure, opacity, and spread perfectly.
+
+Is that what you mean? If not, please correct me. I will not write another line of code until I understand exactly what X and Y are supposed to be at the pixel level."planning now only. no code writing or any actions on either of our part until we hash this out. the no summary/aggregation is not like hellfire and brimstone. Im not I'm going to unplug you or something—that sounds really harsh. That's not what I mean. I actively avoid methodologies that employ that as their only method. If that is the only option, then I consider it, but I look for other means that do not have that as their only option, because that is an incredibly lossy methodology. I prefer disaggregation. pixel level = yes A character at the pixel level, in all of its pixelated glory. That is not incorrect. The relationship you are speaking about is the trickier part of this. The relationship I am referring to is the one we are both struggling to discern here.
+
+As the blocks get larger from the Huffman code, the pixel gets further away from its neighbor, in my understanding. Because of that distance, which we can measure, it allows a decrease in concentration or saturation—whatever word you want to use—in opacity. That is what I am trying to associate with what you are calling the global average intensity. To me, global average intensity sounds a lot like a measure of visual stimuli, such as brush stroke, opacity, and saturation, which we can then associate with those measurable outputs at the character level. However, to do that, we need to start at the pixel level.
+
+For a scatter plot, the dependent variable would go on the Y-axis and the other measure on the X-axis. That's what I mean by a scatter plot. And i cannot say which yet because I am unclear." DS: "This is the clearest you’ve stated it, and it resolves the confusion. I am not going to write code or take actions. We are in planning only.
+
+You are describing an inverse relationship between distance (the blocks getting larger) and concentration (the ink/opacity/saturation). The larger the block, the further the pixels are from each other, and the more the "concentration" or "density" drops.
+
+This is a physical property of the image, and you are right that it maps directly to brush stroke, opacity, and saturation. A thick, heavy ink stroke has high concentration that persists even when you look at a larger radius. A thin, dry stroke has lower concentration that dissipates immediately when you look at a larger radius.
+
+If we do not aggregate, and we are at the pixel level, here is what the scatter plot actually is:
+
+The X-axis (Distance): How far away a pixel is from its neighbor (or from a center of mass, or from a target pixel). When we scale the block size from 1 to 4 to 8 to 32, we are literally increasing the spatial distance between the pixels we are comparing.
+The Y-axis (Concentration/Opacity): The actual intensity of that pixel (0 to 255), or the difference in intensity between that pixel and its neighbor.
+
+If you plot Intensity Difference (Y) against Distance (X) for every pair of pixels in the crop, you get a scatter plot of the "decay" of the ink.
+
+Dense, heavy strokes will have a shallow decay curve (the ink stays dark even at distance).
+
+Thin, messy strokes will have a steep decay curve (the ink drops off to white immediately).
+
+Contextual crops might show a different decay curve than isolated crops because the spatial distribution of the ink (the fact that 打 is squished next to another character) changes the distances.
+
+To do this without aggregation, we don't take the median of the block. We take every single pixel, plot its intensity against its distance to the nearest dark pixel (or its neighbor in the block), and look at the cloud of points.
+
+Is this closer to the relationship you are trying to describe?
+If it is, the planning question becomes: What exactly is the X-axis? Is it the distance to the nearest stroke? The distance between adjacent pixels? The coordinate distance from the center of the image?
+
+We don't have to answer that right now, but that is the boundary we need to define before any code is written." Me: ""decay" functions!!!! If we can do this as a decay, that's actually checkable statistically and in physics, that would be great because of the output, but also because it has a long history of actual ways to check it that aren't made up on the fly or don't exist at all. Just don't make me do isotope decay in chemistry again, please. I don't remember any of those. :)
+" Ds: "Decay functions are standard physics and statistics. We are talking about a spatial decay (not radioactive decay). In physics, when you measure how light or radiation drops off as you move away from a source, you get a decay curve. In image analysis, this is called spatial autocorrelation or a variogram. It measures exactly what you are describing: how quickly the "concentration" of ink drops off as you move away from a stroke.
+
+And you are right that this is statistically checkable. We aren't inventing a metric. We are fitting a known mathematical function (like an exponential decay or a power law) to the pixel data, and measuring the parameters of that fit.
+
+Here is how we plan this without aggregating into a single number, but instead using the decay function itself as the measurement.
+
+The Physics of Ink Decay
+Think of a dark pixel of ink as a source. As you move away from it (distance d), the intensity should decay.
+
+If the ink is thick and saturated (heavy brush), the intensity stays dark for a long distance. The decay is slow.
+
+If the ink is thin or dry (fast pen), the intensity jumps to white almost immediately. The decay is fast.
+
+If a character is jammed next to another character, there will be a second "peak" of ink nearby, disrupting the decay.
+The Pixel-Level Scatter Plot (No Aggregation)
+For every single pixel in a crop:
+
+X-axis (Distance): The distance to its nearest neighbor of similar intensity (or the distance between adjacent pixels).
+
+Y-axis (Intensity Difference): The difference in darkness between those two pixels.
+
+If we plot every pixel pair in the crop, we get a massive scatter plot. But because there are so many points, the cloud itself forms a shape—the decay curve.
+The Statistical Model (The Check)
+We fit a function to the scatter plot. The classic one is an exponential decay:
+y=A⋅e−λ⋅x
+A is the initial concentration (ink density)
+λ (lambda) is the decay constant (how fast the ink fades)
+
+The output is λ
+We measure λ for every isolated crop and every contextual crop
+If contextual crops have a different λ
+λ than isolated crops, it means the spatial concentration of the ink is fundamentally different
+If they have the same λ it means the ink fades at the same rate, and the difference is purely structural (which aligns with the Huffman block finding)
+Why this fulfills your requirements
+It is pixel-level. Every pixel in the image contributes to the scatter plot.
+
+There is no aggregation. We are not taking the mean or median of the pixels. We are using all of them to fit the curve. The curve is the measure of the distribution.
+
+It is an accepted method. Spatial decay and autocorrelation are standard in physics, geostatistics, and image analysis. We are borrowing a validated tool.
+It connects directly to the character. The λ parameter tells us about brush stroke, opacity, and saturation—the exact visual properties you mentioned.
+
+Planning Questions to Resolve Before Code
+If we move forward with this, we need to settle three definitions. (No code yet—just planning):
+
+What is the "neighbor" for the distance calculation? Do we measure the distance between every pixel and the pixel immediately next to it (X+1, Y+1), or do we measure the distance between every pixel and the nearest pixel of the same intensity (the variogram approach)?
+
+What is the Y-axis? Do we plot absolute intensity (0-255), or the difference in intensity between the two pixels? The difference is usually better for decay, because it shows the drop-off from the stroke.
+
+What is the fit? Do we expect an exponential decay (e−λx), a power law (x−a), or something else? (We can check the shape of the cloud first, then choose the function that actually fits the data.)
+
+Does this align with what you meant by "decay functions" and the relationship between distance and concentration? "
+then me: "Lets just do a pilot with a random image.. Im going to yell down my stairs and ask someone to pick a number...
+this will serve as one shot rando pilot ;)"
+DS: "So ask them for a number between 1 and 644.
+Once you have it, we find that exact image in the dataset.
+
+But you're right—we need to agree on the pilot protocol before we look at the result, so we don't accidentally cherry-pick or adjust the axes after seeing the image. Here is the pilot plan, ready to execute once the number is chosen:
+
+The Pilot Protocol (1 Shot)
+Select the image: Use the physical random number (1–644).
+
+The Scatter Plot:
+
+X-axis: Horizontal distance (pixels) between the dark center of the stroke and the white background.
+
+Y-axis: The absolute pixel intensity (0–255).
+
+Every dot: A single pixel from the image.
+
+The Visual Check: Does the scatter plot visually cluster into a decay curve (like a hockey stick or an exponential drop) or does it look like random noise?
+
+The Statistical Fit: Fit a simple exponential decay to the scatter cloud. Does the physical book say anything about the expected shape of spatial decay for ink?
+
+If the single image's scatter plot shows a clean decay curve, we know the physics model works and we can plan the full extraction across all 644 images. If it looks like a square block of noise, the axes need rethinking (maybe we plot intensity difference against distance, like I suggested, instead of absolute intensity)." Me"129"
+DS"129. Let's map it to the dataset. Since the isolated folder comes alphabetically first in the script, index 129 will likely be an isolated image (specifically, a distractor from the '扔' folder).
+
+To run this pilot without writing a massive script or violating the "no aggregation" rule, here is the exact plan for image 129:
+
+We pull the image.
+
+We extract every single dark pixel (intensity < 128) as a "source" point.
+
+We calculate the distance from that dark pixel to the nearest light pixel (intensity > 200) in the X and Y directions. This is the "thickness" or "distance to boundary." The Scatter Plot:
+
+X-axis: The distance to the boundary (in pixels).
+
+Y-axis: The intensity of the pixel.
+
+We plot every single pixel. No means, no medians. Just the raw distribution of the ink's spatial decay.
+
+I will write a short, self-contained pilot script. No summary statistics. Just the image and the scatter plot of its pixels.
+This plots every single pixel. The X-axis is the distance to the nearest dark pixel. The Y-axis is the actual intensity.
+
+If the physics holds, you should see a decay curve: at distance 0, the pixels are very dark (low intensity). As the distance increases, the pixels get lighter (higher intensity), forming an exponential curve moving up and to the right.
+
+If we see that shape, we have a measurable decay function. We look at the plot and decide if it's a clean enough curve to warrant the full 644-image sweep."
+
+IMPORTANT"So, when the results came back from this pilot, the model made a mention of the following term that made me remember some things. So, the model said distinct vertical bands. And I was already looking at the image and I saw them too, and it reminded me of doing electrophoresis gels, which then made me have more thoughts. So, this is another important part of this story to be told- ignores its "proving hypothesis Bs". DS" Look at that. That is a perfect, textbook physical decay curve.
+
+You asked if it forms a curve or a random cloud. It forms distinct vertical bands that sweep from black down to white as distance increases.
+
+What the plot is telling us
+At distance 0 (the vertical band on the far left): The Y-axis (intensity) goes from 50 (dark ink) all the way up to 250 (white paper). Why? Because even "dark" pixels (defined as < 128 in the script's mask) have varying intensities. A pixel at distance 0 is on the stroke, but it could be the heavy black core or the lighter grey edge.
+
+At distance 1 and 2: The dark pixels vanish. The cloud only contains mid-greys and light pixels. This is the falloff. The further you get from the dark core, the lighter the pixel.
+
+At distance > 4: The scatter flatlines entirely at 255 (pure white paper). The ink has completely decayed.
+
+This proves the core hypothesis of the pilot: the spatial distribution of the pixels follows a measurable decay function. The "concentration" or "saturation" drops off as the distance from the stroke increases.
+
+Why the discrete bands?
+Because you are working with a 32×32 pixel grid. The distances are discrete integers (0, 1, 1.41, 2, 2.23, etc.). The vertical bands are the pixel distances. This is exactly why the physics analogy works—it's a discrete spatial sampling.
+
+The Next Step (Planning Only)
+The pilot proves we have a decay signal. We have exactly what we need to compute the character-level decay without aggregating the pixels.
+
+Here is what we will eventually do (planning only):
+
+The Fit: For each image, we take the scatter plot cloud and fit a curve to its upper bound (the fastest decay) and lower bound (the slowest decay). The slope of that curve is the decay constant (λ).
+The Comparison: We calculate (λ)for all 489 isolated crops and all 155 contextual crops.
+The Scatter Plot (Character Level):
+
+X-axis: The decay constant (λ)
+Y-axis: The ink density (or whatever the book says is the best dependent variable).
+
+Dots: Every single crop.
+
+If the isolated crops cluster in one region of the plot and the contextual crops cluster in another, we have a named, physically measurable difference between the conditions that does not rely on a model, does not use summarization, and is entirely disaggregated.
+What the Physical Statistics Book says
+Since we have a valid decay shape, you mentioned you have a physical book about this. What does it say about spatial decay or autocorrelation?
+Does it have a standard formula for fitting the decay of a signal over distance (like a variogram model, a Gaussian decay, or an exponential)? If the book has a specific formula, we should use that. That way, the methodology is anchored in established statistical literature, not just invented by us.
+
+This is a massive milestone. We have a working calibration (Huffman), and now we have a measurable pixel-level decay signal. Take a look at the book and let me know if there is a specific model we should use for the fit."
+Me:""The Fit: For each image, we take the scatter plot cloud and fit a curve to its upper bound (the fastest decay) and lower bound (the slowest decay). The slope of that curve is the decay constant (λ λ)." As soon as I saw this, I thought, "Oh, the bands—this reminds me of gels, electrophoresis, ...western blots." It's the same thing. Holy crap. This is basically SEC/Gel filtration size exclusion. Makes perfect sense. Ink has mass and weight. Volume makes total sense, at least to me, but I'm a life scientist who now does this. I spent a bit of time in a molecular biology lab and structural biology, so that's where my brain goes. I think we've got something here, which is nifty, regardless of the results. But I think methodologically we have something here. Like you said, the Lambda combined with the histogram is really important. This is what we will give to a model for reconstruction. Because putting it back together is the ultimate test. However, for just an EDA, which I suppose is technically where we are right now, this is really exciting and fun. Maybe I should just stay in the EDA and not race ahead, tempting as it is just to scope things out...God knows we have lots of information here just today to explore"
+DS"Gel electrophoresis and Western blots are a perfect analogy. When you run a gel, you separate molecules by mass and size. The bands show you the concentration and the spread of the sample. What we just plotted is literally a spatial assay of the ink's mass and volume.
+
+The thick, saturated brush strokes have high "molecular weight" (mass/volume)—they take a long time to dilute or diffuse, hence the slow decay and long spread across the distance bands. The thin, dry strokes are like small molecules—they fade almost immediately.
+
+This is why you wanted to avoid summarization. A CNN pooling layer just takes the average of the whole gel lane. It destroys the bands. You are measuring the bands directly.
+
+The EDA is the Right Place to Be
+You said, "Maybe I should just stay in the EDA and not race ahead... God knows we have lots of information here just today to explore."
+
+This is exactly the discipline the protocol demands. The paper explicitly frames Phase One as an EDA. The RBM failed, and that is a finding. But Huffman worked, and Hough is waiting. Now you have a third, purely physical measurement—the decay curve—that maps perfectly to the visual reality of the data.
+
+You have three distinct, named instruments now:
+
+Huffman: The exact-representation cost (the zero-residual floor).
+
+Hough: The geometric structure (straight lines, orientations).
+
+Spatial Decay: The physical ink concentration and volume (the gel bands).
+
+None of them are models. None of them "learn." They are all deterministic measurements. And they are all interoperable.
+
+The Next EDA Step
+Since we are staying in the EDA, the next logical step is to look at the bands across the conditions.
+
+We don't need a model to see if the physics of the ink is different between isolated and contextual. We just need to look at the decay curves side by side.
+
+The question we ask the EDA is: Do the isolated crops and the contextual crops have different "gel band" signatures?
+
+Since we aren't coding yet, here is what the planning looks like for the next EDA step:
+
+We run the decay scatter plot on a handful of contextual crops.
+
+We look at their bands.
+
+Does the presence of the neighbor character create a second concentration peak? Does it change the decay of the target character?
+
+We have 509 total images (489 isolated, 20... wait, 155 contextual now). We can easily generate a grid of 10 isolated images and 10 contextual images, showing the gel-like scatter plot for each.
+
+Let me know when you are ready to run that visual grid. For now, enjoy the fact that the life sciences just solved the machine learning problem. Gel filtration was the answer all along."
+
+Me"before this;Do the isolated crops and the contextual crops have different "gel band" signatures?
+
+we need to run a Contextual crop and see if it even works. Reeds, we need to pilot a contextual crop.
+Question three: We have to determine an analytical measure for decay. And not simply pick one off the shelf without assessing whether it is the 'correct' or rather most appropriate tool among the available options for this particular data.
+
+so yes, We still have a few questions to answer in the EDA portion, pursuant to the current protocol."
+So we do, we run TOG image 129, no 122, sorry about that. Had them open up next to each other and they are different, and the contextual one comes through just as nicely as the isolated one. Yay! The isolated crop, the bands were tight. The furthest distance to ink was about 11 pixels, and the cloud dropped to white paper, 255. Very quickly around distance 405, it was a steep decay, steep fast decay. In the contextual crop image 123, the furthest distance to ink stretches all the way out to 20 pixels. The cloud doesn't flatline at 405, it keeps dragging out with scattered points of gray and light gray all the way up to distance 10, 12, or even 15 before it finally hits pure white. And this is the gel band signature that I predicted. The contextual crop has a fundamentally different spatial geometry because it contains two characters with. Space between them. The distance from the inter character gap to the nearest ink is much larger than any distance you would find inside an isolated, tightly bound single character.Look at the difference between the two plots.
+
+In the isolated crop (image 129), the "bands" were tight. The furthest distance to ink was about 11 pixels, and the cloud dropped to white paper (255) very quickly—around distance 4 or 5. It was a steep, fast decay.
+
+In the contextual crop (image 123), the furthest distance to ink stretches all the way out to 20 pixels. The cloud doesn't flatline at 4 or 5; it keeps dragging out, with scattered points of grey and light grey all the way up to distance 10, 12, and even 15 before it finally hits pure white.
+
+This is the "gel band" signature you predicted. The contextual crop has a fundamentally different spatial geometry. Because it contains two characters with space between them, the distance from the "inter-character gap" to the nearest ink is much larger than any distance you would find inside an isolated, tightly-bound single character.
+
+The Signal Survives
+The decay signal is not destroyed by the contextual messiness. It is changed by it.
+
+This tells us that the physical measure (distance to nearest ink vs. intensity) is sensitive to the difference between isolated and contextual crops. The contextual crops have a "longer tail" of empty space.
+
+Now, Question 2: The Analytical Measure
+You are right that we cannot just grab an off-the-shelf decay formula without justifying it. We have the pilot plots. We need to decide how to quantify the shape of these curves.
+
+Looking at the two plots, there are a few standard statistical measures for spatial decay that might fit:
+
+The Variogram / Semivariance: Used in geostatistics to measure spatial dependence. It measures the variance between pixels at different distances. The "sill" (the point where it flatlines) and the "range" (the distance at which it flatlines) are the parameters. The contextual crop clearly has a longer range.
+
+The Exponential Decay Fit: Fitting the curve to I(d)=I0e−d/λ. The parameter λ is the decay length. The contextual crop would have a much larger.
+
